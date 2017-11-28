@@ -1,48 +1,63 @@
-global.Promise = require('bluebird')
+import bluebird from 'bluebird'
+import Koa from 'koa'
+import bodyParser from 'koa-bodyparser'
+import api from './routes/api'
+import mongoose from 'mongoose'
 
-const Koa = require('koa')
-const fs = require('fs')
-const path = require('path')
-const mongoose = require('mongoose')
+process.on('unhandledRejection', reason => {
+  throw reason
+})
 
-const config = require('./config.js')
+mongoose.Promise = bluebird
+mongoose.connect('mongodb://127.0.0.1:27017/ntdb', {
+  promiseLibrary: Promise,
+  useMongoClient: true,
+  keepAlive: true,
+})
 
-const init = async () => {
+const app = new Koa
 
-  if (config.debug) {
-    process.on('unhandledRejection', reason => {
-      throw reason
-    })
+app.use(bodyParser())
+app.use(async (ctx, next) => {
+  ctx.input = () => {
+    const request = ctx.request
+    return Object.assign({}, ...[
+      request.body,
+      request.query,
+      request.params,
+      ctx.params,
+    ])
   }
+  return next()
+})
+app.use(async (ctx, next) => {
+  return next().catch(err => {
+    ctx.status = err.status || 500
+    const json = {
+      status: 'error',
+      type: ctx.message,
+    }
 
-  const port = config.port
-  if (!fs.existsSync(config.log.dir)) fs.mkdirSync(config.log.dir)
-  mongoose.Promise = Promise
-  global.mongoose = mongoose
-  global.db = await mongoose.createConnection(config.mongodb, {
-    promiseLibrary: Promise,
-    useMongoClient: true,
-    keepAlive: true,
+    if (ctx.status !== 500) {
+      json.error = err.message
+      json.message = false || undefined
+    } else {
+      const req = ctx.request
+      // log(req, {
+      //   params: req.params,
+      //   query: req.query,
+      //   body: req.body,
+      // }, err)
+    }
+
+    ctx.body = json
+
+    console.log(err)
   })
+})
+app.use(api.routes())
 
-  const app = new Koa()
-  global.app = app
-  if (config.debug) {
-    app.use(require('koa-logger')())
-  }
+if (process.env.NODE_ENV !== 'testing')
+  app.listen(2003)
 
-  app.use(require('koa-bodyparser')())
-
-  const routesPath = path.join(__dirname, './routes')
-  fs.readdirSync(routesPath).map(routeFile => {
-    app.use(require(path.join(routesPath, routeFile)).routes())
-  })
-
-  if (config.debug) {
-    await app.listen(port)
-    console.log(`Server is listening ${port} without any exception`)
-  }
-
-}
-
-module.exports = {init}
+export default app
