@@ -33,7 +33,7 @@ userController.register = async ctx => {
   ctx.body = newUser
 }
 
-userController.getToken = async ctx => {
+userController.genToken = async ctx => {
   const input = ctx.input()
   const validate = Joi.validate(input, Joi.object().keys({
     username: Joi.string().max(20).required(),

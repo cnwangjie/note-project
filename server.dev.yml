@@ -1,0 +1,5 @@
+apps:
+  - script: src/app.js
+    name: note
+    watch: true
+    ignore_watch: [tmp, test]

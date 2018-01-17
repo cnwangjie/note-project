@@ -1,6 +1,8 @@
 import mongoose from 'mongoose'
 
-const textSchema = new mongoose.Schema({
+const Schema = mongoose.Schema
+
+const textSchema = new Schema({
   owner: {
     type: String,
   },
@@ -48,4 +50,4 @@ const textSchema = new mongoose.Schema({
 
 const Text = mongoose.model('Text', textSchema)
 
-module.exports = Text
+export default Text

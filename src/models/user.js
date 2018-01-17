@@ -1,14 +1,14 @@
 import mongoose from 'mongoose'
 
-const userSchema = new mongoose.Schema({
+const Schema = mongoose.Schema
+
+const userSchema = new Schema({
   username: {
     type: String,
     unique: true,
     index: true,
   },
-  nickname: {
-    type: String,
-  },
+  nickname: String,
   email: {
     type: String,
     unique: true,
@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
   password_hash: String,
-  token: String,
+  token: Schema.Types.Mixed,
   created_at: {
     type: Date,
     default: Date.now(),
@@ -45,10 +45,24 @@ const userSchema = new mongoose.Schema({
   }
 })
 
-userSchema.statics.compareToken = async function({username, token}) {
-  return !!this.findOne({username, token})
+userSchema.statics = {
+  async compareToken({username, token, act}) {
+    const user = this.findOne({username})
+    if (!user) throw new Error('USER_NOT_EXISTS')
+    if (!(token in user.token)) throw new Error('TOKEN_NOT_EXISTS')
+    const t = user.token[token]
+    if (Date.now() > t.created_at + t.life) {
+      delete user.token[token]
+      await user.save()
+      throw new Error('TOKEN_EXPIRE')
+    }
+
+    if (t.act.indexOf(act) === -1) throw new Error('FORBIDDEN')
+
+    return true
+  }
 }
 
 const User = mongoose.model('User', userSchema)
 
-module.exports = User
+export default User
