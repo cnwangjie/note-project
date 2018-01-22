@@ -19,7 +19,7 @@ const userSchema = new Schema({
     default: false,
   },
   password_hash: String,
-  token: Schema.Types.Mixed,
+  token: [String],
   created_at: {
     type: Date,
     default: Date.now(),
@@ -46,7 +46,7 @@ const userSchema = new Schema({
 })
 
 userSchema.statics = {
-  async compareToken({username, token, act}) {
+  async __compareToken({username, token, act}) {
     const user = this.findOne({username})
     if (!user) throw new Error('USER_NOT_EXISTS')
     if (!(token in user.token)) throw new Error('TOKEN_NOT_EXISTS')

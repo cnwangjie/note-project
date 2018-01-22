@@ -1,27 +1,14 @@
-import mongoose from 'mongoose'
+import redis from './../redis'
 
-const Schema = mongoose.Schema
+const Mail = {}
 
-const mailSchema = new Schema({
-  email: String,
-  use: String,
-  hash: String,
-  created_at: {
-    type: Date,
-    default: Date.now(),
-  },
-  expired_time: Number,
-}, {
-  timestamps: {
-    createdAt: 'created_at',
-  },
-  toJSON: {
-    transform: doc => {
-      return {}
-    }
-  }
-})
+Mail.create = async ({email, use, hash, create_at, expired_time}) => {
+  await redis().setAsync(`${email}-${use}-${hash}`, create_at, 'PX', expired_time)
+  return {email, use, hash, create_at, expired_time}
+}
 
-const Mail = mongoose.model('Mail', textSchema)
+Mail.findOne = async ({email, use, hash}) => {
+  return redis().getAsync(`${email}-${use}-${hash}`)
+}
 
 export default Mail

@@ -7,6 +7,7 @@ import bluebird from 'bluebird'
 import mongoose from 'mongoose'
 import bodyParser from 'koa-bodyparser'
 import api from './routes/api'
+import redis from 'redis'
 
 nconf.argv({
   parseValues: true,
@@ -38,6 +39,9 @@ log4js.configure({
 process.on('unhandledRejection', reason => {
   log4js.getLogger().error(reason)
 })
+
+bluebird.promisifyAll(redis.RedisClient.prototype)
+bluebird.promisifyAll(redis.Multi.prototype)
 
 mongoose.Promise = bluebird
 mongoose.connect(nconf.get('mongodb'), {
